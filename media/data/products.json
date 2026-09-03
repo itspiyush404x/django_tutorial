@@ -1,0 +1,34 @@
+[
+    {
+        "id": "prod_1",
+        "name": "Wireless Mouse",
+        "price": 597,
+        "category": "Electronics",
+        "discription": "A most comfortable wireless mouse for everyday use.",
+        "img_filename": "wireless_mouse.jpg"
+    },
+    {
+        "id": "prod_2",
+        "name": "Mechanical Keyboard",
+        "price": 1499,
+        "category": "Electronics",
+        "discription": "A compact mechanical keyboard with responsive keys.",
+        "img_filename": "mechanical_keyboard.jpg"
+    },
+    {
+        "id": "prod_3",
+        "name": "Water Bottle",
+        "price": 399,
+        "category": "Home",
+        "discription": "A durable reusable water bottle for daily use.",
+        "img_filename": "water_bottle.jpg"
+    },
+    {
+        "id": "prod_4",
+        "name": "Backpack",
+        "price": 999,
+        "category": "Accessories",
+        "discription": "A lightweight backpack suitable for college and everyday travel.",
+        "img_filename": "backpack.jpg"
+    }
+]
