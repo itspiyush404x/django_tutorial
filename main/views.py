@@ -9,7 +9,11 @@ import os
 
 # Create your views here.
 def home(request):
-    return HttpResponse("<h1>This is Home Page<h1/>")
+    if request.user.is_authenticated:
+        return HttpResponse(f"<h1>This is Home Page<h1/>")
+    else:
+        return redirect("login")
+        
 
     if request.method == "GET":
         json_path = os.path.join(settings.MEDIA_ROOT, "data", "products.json")
