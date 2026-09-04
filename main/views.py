@@ -9,10 +9,9 @@ import os
 
 # Create your views here.
 def home(request):
-    if request.user.is_authenticated:
-        return HttpResponse(f"<h1>This is Home Page<h1/>")
-    else:
-        return redirect("login")
+    
+    return render(request, "home.html", )
+    
         
 
     if request.method == "GET":
@@ -82,3 +81,6 @@ def login(request):
     else:
         return render(request, "login.html")
     
+def logout(request):
+    auth.logout(request)
+    return redirect("home")

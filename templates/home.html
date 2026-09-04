@@ -1,35 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Product Catalog</title>
-    <style>
-        .catalog-container { display: flex; gap: 20px; flex-wrap: wrap; }
-        .product-card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; width: 250px; text-align: center; }
-        .product-card img { max-width: 100%; height: 200px; object-fit: cover; border-radius: 4px; }
-        .price { color: green; font-weight: bold; font-size: 1.2em; }
-    </style>
-</head>
-<body>
+<h1>This is home page</h1>
 
-    <h1>Our Store Catalog</h1>
-
-    <div class="catalog-container">
-        <!-- Loop through every product passed from the backend context -->
-        {% for product in products %}
-            <div class="product-card">
-                <!-- 1. Dynamically render the matched image -->
-                <img src="{{ product.img_url }}" alt="{{ product.name }}">
-                
-                <!-- 2. Display the matched text attributes -->
-                <h3>{{ product.name }}</h3>
-                <p class="price">₹{{ product.price }}</p>
-                <p>{{ product.description }}</p>
-            </div>
-        {% empty %}
-            <p>No products available at the moment.</p>
-        {% endfor %}
-    </div>
-
-</body>
-</html>
+{% if user.is_authenticated %}
+<h2>Welcome Back, {{user.username}}</h2>
+<a href="logout">
+    <button>Logout</button>
+</a>
+{% else %}
+<h2>Welcome to our site</h2>
+<a href="login">
+    <button>Login</button>
+</a>
+{% endif %}
