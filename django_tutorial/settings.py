@@ -145,3 +145,11 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+
+
+# 1. Ensure sessions persist past closing the browser
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+# 2. Set the expiration age in seconds (e.g., 3600 seconds = 1 hour)
+# Default is 1209600 (2 weeks)
+SESSION_COOKIE_AGE = 86400
