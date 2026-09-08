@@ -3,9 +3,16 @@ from django.http import HttpResponse,JsonResponse
 from django.conf import settings
 from django.shortcuts import render
 from django.contrib.auth.models import User, auth
+from main.models import Product
 from django.contrib import messages
+from django.views.decorators.csrf import csrf_exempt
 import json
 import os
+
+from main.Utils.validation import valid_product
+
+
+
 
 # Create your views here.
 def home(request):
@@ -84,3 +91,43 @@ def login(request):
 def logout(request):
     auth.logout(request)
     return redirect("home")
+
+
+
+#----------- e-commarce --------------------------
+
+@csrf_exempt
+def product(request):
+    if request.method == "POST":
+        return post_product(request)
+
+
+@csrf_exempt
+def post_product(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+       
+        title = data.get("title", "")
+        price = data.get("price", 0)
+        description = data.get("description", "")
+        category = data.get("category", "")
+        image = data.get("image", "")
+
+        
+
+        valid = valid_product({"title": title, "price": price, "description": description, "category": category, "image": image})
+        if  valid is True:
+            product = Product.objects.create(title=title, price=price, description=description, category=category, image=image)
+            product.save()
+            return HttpResponse(status=201)
+        else:
+            return HttpResponse(valid["error"], status=400)
+
+
+
+
+
+
+
+    
+
