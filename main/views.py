@@ -3,9 +3,10 @@ from django.http import HttpResponse,JsonResponse
 from django.conf import settings
 from django.shortcuts import render
 from django.contrib.auth.models import User, auth
-from main.models import Product
+from main.models import Product, Cart
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
+from django.core import serializers
 import json
 import os
 
@@ -97,10 +98,24 @@ def logout(request):
 #----------- e-commarce --------------------------
 
 @csrf_exempt
-def product(request):
-    if request.method == "POST":
-        return post_product(request)
-
+def products(request, id_=None):
+    if id_ is None:
+        if request.method == "GET":
+            return get_all_products(request)
+        elif request.method == "POST":
+            return post_product(request)
+        else:
+            return HttpResponse(status=405)
+    else:
+        if request.method == "GET":
+            return get_single_product(request, id_)
+        elif request.method == "PUT":
+            return update_product(request, id_)
+        elif request.method == "DELETE":
+            return delete_product(request, id_)
+        else:
+            return HttpResponse(status=405)
+    
 
 @csrf_exempt
 def post_product(request):
@@ -122,10 +137,117 @@ def post_product(request):
             return HttpResponse(status=201)
         else:
             return HttpResponse(valid["error"], status=400)
+    else:
+        return HttpResponse(status=405)
+
+def get_all_products(request):
+    products = list(Product.objects.values())
+    return JsonResponse(products, safe=False, status=200)
+
+def get_single_product(request, id_):
+    try:
+        product = Product.objects.values().get(id=id_)
+        return JsonResponse(product, safe=False, status=200)
+    except Product.DoesNotExist:
+        return JsonResponse({"error":"Product Does not exist"}, status=404)
+
+def update_product(request, id_):
+    try:
+        product = Product.objects.get(id=id_)
+
+        data = json.loads(request.body)
+        try:
+            title = data.get("title")
+            price = data.get("price")
+            description = data.get("description")
+            category = data.get("category")
+            image = data.get("image")
+        except KeyError:
+            return JsonResponse({"error":"Invalid json"}, status=422)
+
+        product.title = title
+        product.price = price
+        product.description = description
+        product.category = category
+        product.image = image
+        
+        product.save()
+
+        return HttpResponse(status=201)
+    except Product.DoesNotExist:
+        return JsonResponse({"error":"Product Does not exist"}, status=404)
+
+def delete_product(request, id_):
+    try:
+        product = Product.objects.get(id=id_)
+        product.delete()
+        return HttpResponse(status=204)
+    except Product.DoesNotExist:
+        return JsonResponse({"error":"Product Does not exist"}, status=404)
+
+
+
+@csrf_exempt
+def carts(request, id_=None):
+    if id_ is None:
+        if request.method == "GET":
+            return get_all_cart(request)
+        elif request.method == "POST":
+            return post_cart(request)
+        else:
+            return HttpResponse(status=405)
+    else:
+        if request.method == "GET":
+            return get_single_cart(request, id_)
+        elif request.method == "PUT":
+            return update_cart(request, id_)
+        elif request.method == "DELETE":
+            return delete_cart(request, id_)
+        else:
+            return HttpResponse(status=405)
+
+
+def post_cart(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+
+        username = data.get("username", "")
+        products = data.get("products", [])
+
+        try:
+            user = User.objects.get(username=username)
+        except models.DoesNotExist:
+            return JsonResponse({"error":"User not exits"},status=404)
+
+        cart = Cart.objects.create(user=user)
+        cart.save()
+
+        if products:
+            for prod in products:
+                product = Product.objects.get(id=prod["id"])
+                cart.products.add(product)
+        
+        cart.save()
+
+        return HttpResponse(status=201)
+
+
+        
 
 
 
 
+def get_all_cart(request):
+    pass
+
+def get_single_cart(request, id_):
+    pass
+
+def update_cart(request, id_):
+    pass
+
+def delete_cart(request, id_):
+    pass
 
 
 
