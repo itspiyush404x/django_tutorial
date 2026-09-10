@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 
 # Create your models here.
 class Product(models.Model):
-    title = models.CharField(max_length=250)
+    title = models.CharField(max_length=250, unique=True)
     price = models.FloatField()
     description = models.CharField(max_length=3000)
     category = models.CharField(max_length=250)

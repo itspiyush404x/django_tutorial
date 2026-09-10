@@ -1,17 +1,15 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse,JsonResponse
 from django.conf import settings
-from django.shortcuts import render
 from django.contrib.auth.models import User, auth
-from django.db.models import Model
 from main.models import Product, Cart
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
-from django.core import serializers
+from django.db import IntegrityError
 import json
 import os
 
-from main.Utils.validation import valid_product
+from main.Utils.validation import valid_product, valid_cart
 
 
 
@@ -20,31 +18,30 @@ from main.Utils.validation import valid_product
 def home(request):
     
     return render(request, "home.html", )
-    
+
+
+    # if request.method == "GET":
+    #     json_path = os.path.join(settings.MEDIA_ROOT, "data", "products.json")
+    #     try:
+    #         with open(json_path,"r") as file:
+    #             raw_product = json.load(file)
+    #     except json.JSONDecodeError:
+    #         raw_product = {}
+
+    #     products = []
+
+    #     for product in raw_product:
+    #         filename = product["img_filename"]
+    #         img_url = f"{settings.MEDIA_URL}product_images/{filename}"
+
+    #         product["img_url"] = img_url
+
+    #         products.append(product)
         
-
-    if request.method == "GET":
-        json_path = os.path.join(settings.MEDIA_ROOT, "data", "products.json")
-        try:
-            with open(json_path,"r") as file:
-                raw_product = json.load(file)
-        except json.JSONDecodeError:
-            raw_product = {}
-
-        products = []
-
-        for product in raw_product:
-            filename = product["img_filename"]
-            img_url = f"{settings.MEDIA_URL}product_images/{filename}"
-
-            product["img_url"] = img_url
-
-            products.append(product)
-        
-        # return JsonResponse(products, safe=False)
-        return render(request, "home.html", {"products":products})
-    else:
-        HttpResponse("Method not allowed", status=405)
+    #     # return JsonResponse(products, safe=False)
+    #     return render(request, "home.html", {"products":products})
+    # else:
+    #     HttpResponse("Method not allowed", status=405)
 
 
 def register(request):
@@ -116,9 +113,8 @@ def products(request, id_=None):
             return delete_product(request, id_)
         else:
             return HttpResponse(status=405)
-    
 
-@csrf_exempt
+
 def post_product(request):
     if request.method == "POST":
         data = json.loads(request.body)
@@ -129,12 +125,13 @@ def post_product(request):
         category = data.get("category", "")
         image = data.get("image", "")
 
-        
-
         valid = valid_product({"title": title, "price": price, "description": description, "category": category, "image": image})
         if  valid is True:
-            product = Product.objects.create(title=title, price=price, description=description, category=category, image=image)
-            product.save()
+            try:
+                product = Product.objects.create(title=title, price=price, description=description, category=category, image=image)
+                product.save()
+            except IntegrityError:
+                return JsonResponse({"error":["product of same title already exits"]}, status=400)
             return HttpResponse(status=201)
         else:
             return HttpResponse(valid["error"], status=400)
@@ -189,6 +186,7 @@ def delete_product(request, id_):
 
 
 
+
 @csrf_exempt
 def carts(request, id_=None):
     if id_ is None:
@@ -215,6 +213,10 @@ def post_cart(request):
 
         username = data.get("username", "")
         products = data.get("products", [])
+
+        valid = valid_cart({"username":username, "products":products})
+        if valid is not True:
+            return HttpResponse(valid["error"], status=400)
 
         try:
             user = User.objects.get(username=username)
@@ -251,7 +253,6 @@ def get_single_cart(request, id_):
     cart_dict = {"id":cart.id, "username":cart.user.username, "products":[list(cart.products.values())]}
     return JsonResponse(cart_dict, status=200)
 
-
 def update_cart(request, id_):
     try:
         cart = Cart.objects.get(id=id_)
@@ -285,9 +286,6 @@ def update_cart(request, id_):
 
     return HttpResponse(status=200)
 
-
-
-
 def delete_cart(request, id_):
     try:
         cart = Cart.objects.get(id=id_)
@@ -297,7 +295,4 @@ def delete_cart(request, id_):
     cart.delete()
     return HttpResponse(status=204)
 
-
-
-    
 

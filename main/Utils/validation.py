@@ -33,3 +33,27 @@ def valid_product(product_dict):
         return True
     else:
         return error
+
+
+def valid_cart(cart_dict):
+    error={"error":[]}
+
+    for key in ("username", "products"):
+        if key not in cart_dict:
+            error["error"].append("Some fields are missing ")
+    
+    if not cart_dict["username"]:
+        error["error"].append("username is required ")
+    
+    if not cart_dict["products"]:
+        error["error"].append("products is required ")
+    
+    if not error["error"]:
+        return True
+    else:
+        return error
+
+    
+
+
+
