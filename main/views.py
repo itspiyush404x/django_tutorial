@@ -3,6 +3,7 @@ from django.http import HttpResponse,JsonResponse
 from django.conf import settings
 from django.shortcuts import render
 from django.contrib.auth.models import User, auth
+from django.db.models import Model
 from main.models import Product, Cart
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
@@ -173,7 +174,7 @@ def update_product(request, id_):
         
         product.save()
 
-        return HttpResponse(status=201)
+        return HttpResponse(status=200)
     except Product.DoesNotExist:
         return JsonResponse({"error":"Product Does not exist"}, status=404)
 
@@ -184,6 +185,7 @@ def delete_product(request, id_):
         return HttpResponse(status=204)
     except Product.DoesNotExist:
         return JsonResponse({"error":"Product Does not exist"}, status=404)
+
 
 
 
@@ -216,7 +218,7 @@ def post_cart(request):
 
         try:
             user = User.objects.get(username=username)
-        except models.DoesNotExist:
+        except User.DoesNotExist:
             return JsonResponse({"error":"User not exits"},status=404)
 
         cart = Cart.objects.create(user=user)
@@ -231,23 +233,69 @@ def post_cart(request):
 
         return HttpResponse(status=201)
 
-
-        
-
-
-
-
 def get_all_cart(request):
-    pass
+    data = Cart.objects.all()
+
+    carts = []
+    for cart in data:
+        carts.append({"id":cart.id, "username":cart.user.username, "products":[list(cart.products.values())]})
+    
+    return JsonResponse(carts, safe=False, status=200)
 
 def get_single_cart(request, id_):
-    pass
+    try:
+        cart = Cart.objects.get(id=id_)
+    except Cart.DoesNotExist:
+        return JsonResponse({"error":"Cart does not exit"},status=404)
+
+    cart_dict = {"id":cart.id, "username":cart.user.username, "products":[list(cart.products.values())]}
+    return JsonResponse(cart_dict, status=200)
+
 
 def update_cart(request, id_):
-    pass
+    try:
+        cart = Cart.objects.get(id=id_)
+    except Cart.DoesNotExist:
+        return JsonResponse({"error":"Cart does not exit"},status=404)
+
+    data = json.loads(request.body)
+    try:
+        username = data.get("username")
+        products = data.get("products")
+    except KeyError:
+        return JsonResponse({"error":"Invalid json"}, status=422)
+
+    try:
+        user = User.objects.get(username=username)
+        cart.user = user
+    except User.DoesNotExist:
+        return JsonResponse({"error":"User does not exit"},status=404)
+
+
+    new_produts = []
+    for prod in products:
+        try:
+            product = Product.objects.get(id=prod["id"])
+            new_produts.append(product)
+        except Product.DoesNotExist:
+            return JsonResponse({"error":f"Product with id={prod_id} does not exit"},status=404)
+    
+    cart.products.clear()
+    cart.products.add(*new_produts)
+
+    return HttpResponse(status=200)
+
+
+
 
 def delete_cart(request, id_):
-    pass
+    try:
+        cart = Cart.objects.get(id=id_)
+    except Cart.DoesNotExist:
+        return JsonResponse({"error":"Cart does not exit"},status=404)
+
+    cart.delete()
+    return HttpResponse(status=204)
 
 
 

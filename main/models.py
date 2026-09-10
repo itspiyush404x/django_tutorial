@@ -9,6 +9,9 @@ class Product(models.Model):
     category = models.CharField(max_length=250)
     image = models.CharField()
 
+    def product_dict(self):
+        return {"id": self.id, "title": self.title, "price": self.price, "description": self.description, "category": self.category, "image": self.image}
+
 
 class Cart(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
