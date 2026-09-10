@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-nhj$@yg@*9^c@8_t%cxiicl)z50a@ugqs9!5#i51+^6g#b4+c@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["https://django-tutorial-skxt.onrender.com", "127.0.0.1", "http://localhost:5173"]
+ALLOWED_HOSTS = ["django-tutorial-skxt.onrender.com", "127.0.0.1", "localhost"]
 
 
 # Application definition
@@ -38,10 +38,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    "corsheaders",
     "main"
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -50,6 +52,15 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "https://django-tutorial-skxt.onrender.com",
 ]
 
 ROOT_URLCONF = 'django_tutorial.urls'
