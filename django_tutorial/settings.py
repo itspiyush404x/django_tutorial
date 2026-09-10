@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-nhj$@yg@*9^c@8_t%cxiicl)z50a@ugqs9!5#i51+^6g#b4+c@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["django-tutorial-skxt.onrender.com", "127.0.0.1"]
+ALLOWED_HOSTS = ["https://django-tutorial-skxt.onrender.com", "127.0.0.1", "http://localhost:5173"]
 
 
 # Application definition
