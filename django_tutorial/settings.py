@@ -54,6 +54,15 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# settings.py
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "django-rate-limit",
+    }
+}
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
 ]

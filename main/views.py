@@ -9,6 +9,7 @@ from django.db import IntegrityError
 import json
 import os
 
+from decorators import rate_limit
 from main.Utils.validation import valid_product, valid_cart
 
 
@@ -95,7 +96,7 @@ def logout(request):
 
 #----------- e-commarce --------------------------
 
-@csrf_exempt
+@rate_limit(max_requests=10, window=60)
 def products(request, id_=None):
     if id_ is None:
         if request.method == "GET":
@@ -187,7 +188,7 @@ def delete_product(request, id_):
 
 
 
-@csrf_exempt
+@rate_limit(max_requests=10, window=60)
 def carts(request, id_=None):
     if id_ is None:
         if request.method == "GET":
@@ -250,7 +251,7 @@ def get_single_cart(request, id_):
     except Cart.DoesNotExist:
         return JsonResponse({"error":"Cart does not exit"},status=404)
 
-    cart_dict = {"id":cart.id, "username":cart.user.username, "products":[list(cart.products.values())]}
+    cart_dict = {"id":cart.id, "username":cart.user.username, "products":list(cart.products.values())}
     return JsonResponse(cart_dict, status=200)
 
 def update_cart(request, id_):
