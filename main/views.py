@@ -9,7 +9,7 @@ from django.db import IntegrityError
 import json
 import os
 
-from decorators import rate_limit
+from decorators import rate_limit_fixed_window, rate_limit_sliding_window
 from main.Utils.validation import valid_product, valid_cart
 
 
@@ -96,7 +96,7 @@ def logout(request):
 
 #----------- e-commarce --------------------------
 
-@rate_limit(max_requests=10, window=60)
+@rate_limit_sliding_window(max_requests=10, window=60)
 def products(request, id_=None):
     if id_ is None:
         if request.method == "GET":
@@ -188,7 +188,7 @@ def delete_product(request, id_):
 
 
 
-@rate_limit(max_requests=10, window=60)
+@rate_limit_sliding_window(max_requests=10, window=60)
 def carts(request, id_=None):
     if id_ is None:
         if request.method == "GET":
@@ -295,5 +295,8 @@ def delete_cart(request, id_):
 
     cart.delete()
     return HttpResponse(status=204)
+
+
+
 
 
