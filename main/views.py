@@ -40,7 +40,7 @@ def home(request):
     #         products.append(product)
         
     #     # return JsonResponse(products, safe=False)
-    #     return render(request, "home.html", {"products":products})
+    #     return render(request, "catalog.html", {"products":products})
     # else:
     #     HttpResponse("Method not allowed", status=405)
 
