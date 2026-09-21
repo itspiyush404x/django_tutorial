@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -31,7 +33,7 @@
         {% for product in products %}
             <div class="product-card">
                 <!-- 1. Dynamically render the matched image -->
-                <img src="{{ product.img_url }}" alt="{{ product.name }}">
+                <img src="/media/{{ product.image }}" alt="{{ product.name }}">
                 
                 <!-- 2. Display the matched text attributes -->
                 <h3>{{ product.name }}</h3>
