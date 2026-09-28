@@ -1,0 +1,338 @@
+# Standard Library Imports
+import json
+import os
+
+# Third-Party Library Imports (Django)
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth.models import User, auth
+from django.db import IntegrityError
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import redirect, render
+from django.views.decorators.csrf import csrf_exempt
+
+# Third-Party Library Imports (Django REST Framework)
+from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+# Local Application / Custom Imports
+from decorators import rate_limit_fixed_window, rate_limit_sliding_window
+from API.models import Product, Cart
+from API.Utils.validation import valid_cart, valid_product
+from .serializers import ProductSerializer
+
+
+
+
+
+# Create your views here.
+#----------- e-commarce --------------------------
+
+# @rate_limit_sliding_window(max_requests=10, window=60)
+# def products(request, id_=None):
+#     if id_ is None:
+#         if request.method == "GET":
+#             return get_all_products(request)
+#         elif request.method == "POST":
+#             return post_product(request)
+#         else:
+#             return HttpResponse(status=405)
+#     else:
+#         if request.method == "GET":
+#             return get_single_product(request, id_)
+#         elif request.method == "PUT":
+#             return update_product(request, id_)
+#         elif request.method == "DELETE":
+#             return delete_product(request, id_)
+#         else:
+#             return HttpResponse(status=405)
+
+
+# def post_product(request):
+#     if request.method == "POST":
+#         data = json.loads(request.body)
+       
+#         title = data.get("title", "")
+#         price = data.get("price", 0)
+#         description = data.get("description", "")
+#         category = data.get("category", "")
+#         image = data.get("image", "")
+
+#         valid = valid_product({"title": title, "price": price, "description": description, "category": category, "image": image})
+#         if  valid is True:
+#             try:
+#                 product = Product.objects.create(title=title, price=price, description=description, category=category, image=image)
+#                 product.save()
+#             except IntegrityError:
+#                 return JsonResponse({"error":["product of same title already exits"]}, status=400)
+#             return HttpResponse(status=201)
+#         else:
+#             return HttpResponse(valid["error"], status=400)
+#     else:
+#         return HttpResponse(status=405)
+
+# def get_all_products(request):
+#     products = list(Product.objects.values())
+#     return JsonResponse(products, safe=False, status=200)
+
+# def get_single_product(request, id_):
+#     try:
+#         product = Product.objects.values().get(id=id_)
+#         return JsonResponse(product, safe=False, status=200)
+#     except Product.DoesNotExist:
+#         return JsonResponse({"error":"Product Does not exist"}, status=404)
+
+# def update_product(request, id_):
+#     try:
+#         product = Product.objects.get(id=id_)
+
+#         data = json.loads(request.body)
+#         try:
+#             title = data.get("title")
+#             price = data.get("price")
+#             description = data.get("description")
+#             category = data.get("category")
+#             image = data.get("image")
+#         except KeyError:
+#             return JsonResponse({"error":"Invalid json"}, status=422)
+
+#         product.title = title
+#         product.price = price
+#         product.description = description
+#         product.category = category
+#         product.image = image
+        
+#         product.save()
+
+#         return HttpResponse(status=200)
+#     except Product.DoesNotExist:
+#         return JsonResponse({"error":"Product Does not exist"}, status=404)
+
+# def delete_product(request, id_):
+#     try:
+#         product = Product.objects.get(id=id_)
+#         product.delete()
+#         return HttpResponse(status=204)
+#     except Product.DoesNotExist:
+#         return JsonResponse({"error":"Product Does not exist"}, status=404)
+
+
+
+
+
+@rate_limit_sliding_window(max_requests=10, window=60)
+def carts(request, id_=None):
+    if id_ is None:
+        if request.method == "GET":
+            return get_all_cart(request)
+        elif request.method == "POST":
+            return post_cart(request)
+        else:
+            return HttpResponse(status=405)
+    else:
+        if request.method == "GET":
+            return get_single_cart(request, id_)
+        elif request.method == "PUT":
+            return update_cart(request, id_)
+        elif request.method == "DELETE":
+            return delete_cart(request, id_)
+        else:
+            return HttpResponse(status=405)
+
+
+def post_cart(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+
+        username = data.get("username", "")
+        products = data.get("products", [])
+
+        valid = valid_cart({"username":username, "products":products})
+        if valid is not True:
+            return HttpResponse(valid["error"], status=400)
+
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return JsonResponse({"error":"User not exits"},status=404)
+
+        cart = Cart.objects.create(user=user)
+        cart.save()
+
+        if products:
+            for prod in products:
+                product = Product.objects.get(id=prod["id"])
+                cart.products.add(product)
+        
+        cart.save()
+
+        return HttpResponse(status=201)
+
+def get_all_cart(request):
+    data = Cart.objects.all()
+
+    carts = []
+    for cart in data:
+        carts.append({"id":cart.id, "username":cart.user.username, "products":[list(cart.products.values())]})
+    
+    return JsonResponse(carts, safe=False, status=200)
+
+def get_single_cart(request, id_):
+    try:
+        cart = Cart.objects.get(id=id_)
+    except Cart.DoesNotExist:
+        return JsonResponse({"error":"Cart does not exit"},status=404)
+
+    cart_dict = {"id":cart.id, "username":cart.user.username, "products":list(cart.products.values())}
+    return JsonResponse(cart_dict, status=200)
+
+def update_cart(request, id_):
+    try:
+        cart = Cart.objects.get(id=id_)
+    except Cart.DoesNotExist:
+        return JsonResponse({"error":"Cart does not exit"},status=404)
+
+    data = json.loads(request.body)
+    try:
+        username = data.get("username")
+        products = data.get("products")
+    except KeyError:
+        return JsonResponse({"error":"Invalid json"}, status=422)
+
+    try:
+        user = User.objects.get(username=username)
+        cart.user = user
+    except User.DoesNotExist:
+        return JsonResponse({"error":"User does not exit"},status=404)
+
+
+    new_produts = []
+    for prod in products:
+        try:
+            product = Product.objects.get(id=prod["id"])
+            new_produts.append(product)
+        except Product.DoesNotExist:
+            return JsonResponse({"error":f"Product with id={prod_id} does not exit"},status=404)
+    
+    cart.products.clear()
+    cart.products.add(*new_produts)
+
+    return HttpResponse(status=200)
+
+def delete_cart(request, id_):
+    try:
+        cart = Cart.objects.get(id=id_)
+    except Cart.DoesNotExist:
+        return JsonResponse({"error":"Cart does not exit"},status=404)
+
+    cart.delete()
+    return HttpResponse(status=204)
+
+
+
+
+
+
+
+class ProductListCreate(APIView):
+    def get(self, request):
+
+        products = Product.objects.all()
+
+        paginator = PageNumberPagination()
+
+        paginator.page_size = 2
+
+        page = paginator.paginate_queryset(products, request)
+
+        serializer = ProductSerializer(page, many=True)
+
+        return paginator.get_paginated_response(serializer.data)
+
+    
+    def post(self, request):
+
+        serializer = ProductSerializer(data=request.data)
+
+        if serializer.is_valid():
+
+            serializer.save()
+
+            return Response(
+                serializer.data,
+                status=status.HTTP_201_CREATED
+            )
+
+        return Response(
+            serializer.errorss,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+class ProductDetail(APIView):
+    def get_objects(self, request, pk):
+        try:
+            return Product.objects.get(pk=pk)
+        except Product.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        product = self.get_objects(request, pk)
+
+        if product is None:
+            return Response(
+                {"error": "Product not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = ProductSerializer(product)
+
+        return Response(
+            serializer.data,
+        )
+
+    def put(self, request, pk):
+        product = self.get_objects(request, pk)
+
+        
+        if product is None:
+            return Response(
+                {"error": "Product not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = ProductSerializer(
+            product,
+            data=request.data,
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                serializer.data
+            )
+        
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+        
+
+    def delete(self, request, pk):
+
+        product = self.get_object(pk)
+
+        if product is None:
+            return Response(
+                {"error": "Product not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        product.delete()
+
+        return Response(
+            status=status.HTTP_204_NO_CONTENT
+        )
+
+
+

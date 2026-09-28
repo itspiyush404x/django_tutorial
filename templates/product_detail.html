@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ product.name }} | goodfinds.</title>
+    <style>
+        :root { --ink: #17211d; --muted: #6e7973; --line: #e8ece9; --accent: #176b50; --canvas: #f7f8f5; }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: var(--canvas); color: var(--ink); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+        a { color: inherit; text-decoration: none; }
+        .header { background: #fff; border-bottom: 1px solid var(--line); }
+        .header-inner, main { width: min(1060px, calc(100% - 40px)); margin: 0 auto; }
+        .header-inner { min-height: 72px; display: flex; align-items: center; justify-content: space-between; }
+        .brand { font-size: 1.25rem; font-weight: 800; letter-spacing: -.05em; }
+        .brand span, .back-link { color: var(--accent); }
+        .account { color: var(--muted); font-size: .9rem; }
+        main { padding: 36px 0 70px; }
+        .back-link { display: inline-block; margin-bottom: 26px; font-size: .9rem; font-weight: 700; }
+        .product-layout { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(300px, .95fr); gap: clamp(30px, 6vw, 72px); align-items: start; }
+        .gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .gallery figure { display: grid; min-height: 230px; overflow: hidden; margin: 0; place-items: center; border: 1px solid var(--line); border-radius: 14px; background: #eff2ee; }
+        .gallery figure:first-child { grid-column: 1 / -1; min-height: 430px; }
+        .gallery img { width: 100%; height: 100%; max-height: 520px; object-fit: cover; }
+        .placeholder { color: #87918a; }
+        .details { padding: 10px 0; }
+        .eyebrow { margin: 0 0 12px; color: var(--accent); font-size: .76rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+        h1 { margin: 0; font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -.055em; line-height: 1.08; }
+        .price-row { display: flex; align-items: baseline; gap: 12px; margin: 22px 0; }
+        .price { color: var(--accent); font-size: 1.7rem; font-weight: 800; }
+        .old-price { color: #8c9690; text-decoration: line-through; }
+        .description { color: #55615a; line-height: 1.8; white-space: pre-line; }
+        .attributes { margin-top: 28px; border-top: 1px solid var(--line); }
+        .attribute { display: flex; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); font-size: .92rem; }
+        .attribute span:first-child { color: var(--muted); }
+        .variant-picker { display: grid; gap: 18px; margin: 28px 0; }
+        .variant-group { display: grid; gap: 8px; margin: 0; padding: 0; border: 0; }
+        .variant-group label, .variant-select-label { font-size: .9rem; font-weight: 700; }
+        .variant-select { width: 100%; min-height: 46px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); font: inherit; }
+        .variant-summary { margin-top: 20px; padding: 16px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+        .variant-name { margin: 0 0 8px; font-weight: 750; }
+        .variant-summary .attributes { margin-top: 0; border-top: 0; }
+        .variant-summary .attribute { padding: 9px 0; }
+        @media (max-width: 720px) {
+            .product-layout { grid-template-columns: 1fr; }
+            .gallery figure:first-child { min-height: 330px; }
+            .gallery figure { min-height: 170px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <a class="brand" href="{% url 'home' %}">good<span>finds.</span></a>
+            <div class="account">
+                {% if user.is_authenticated %}
+                    {{ user.username }} · <a href="{% url 'logout' %}">Log out</a>
+                {% else %}
+                    <a href="{% url 'login' %}">Log in</a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+    <main>
+        <a class="back-link" href="{% url 'home' %}">← Back to all products</a>
+        <article class="product-layout">
+            <div class="gallery" id="product-gallery" aria-label="Product images">
+                {% for image in product.images.all %}
+                    <figure><img src="{{ image.url.url }}" alt="{{ product.name }}{% if not forloop.first %} image {{ forloop.counter }}{% endif %}"></figure>
+                {% empty %}
+                    <figure><span class="placeholder">Product image coming soon</span></figure>
+                {% endfor %}
+            </div>
+            <div class="details">
+                <p class="eyebrow">{% if product.brand %}{{ product.brand.name }}{% elif product.category %}{{ product.category.name }}{% else %}Featured product{% endif %}</p>
+                <h1>{{ product.name }}</h1>
+                <div class="price-row">
+                    <span class="price" data-base-price="{{ product.base_price|default:'0' }}">₹{% if default_variant %}{{ default_variant.price|floatformat:2 }}{% else %}{{ product.base_price|floatformat:2 }}{% endif %}</span>
+                    {% if default_variant and default_variant.price < product.base_price %}
+                        <span class="old-price">₹{{ product.base_price|floatformat:2 }}</span>
+                    {% endif %}
+                </div>
+                <div class="description">{{ product.description }}</div>
+                {% if option_groups %}
+                    <div class="variant-picker" aria-label="Choose product options">
+                        {% for group in option_groups %}
+                            <div class="variant-group">
+                                <label for="option-{{ forloop.counter }}">{{ group.label }}</label>
+                                <select class="variant-select" id="option-{{ forloop.counter }}" data-attribute="{{ group.name }}"{% if group.values|length == 1 %} disabled{% endif %}>
+                                    {% for value in group.values %}
+                                        <option value="{{ value }}"{% if value == group.default_value %} selected{% endif %}>{{ value }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% elif variants_data %}
+                    <div class="variant-picker">
+                        <label class="variant-select-label" for="variant-select">Choose an option</label>
+                        <select class="variant-select" id="variant-select">
+                            {% for variant in variants_data %}
+                                <option value="{{ variant.id }}"{% if forloop.first %} selected{% endif %}>{{ variant.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                {% endif %}
+                {% if default_variant %}
+                    <section class="variant-summary" aria-live="polite" aria-label="Selected variant details">
+                        <p class="variant-name" id="variant-name">{{ default_variant.name }}</p>
+                        <div class="attributes" id="variant-attributes">
+                            {% for attribute in default_variant.display_attributes %}
+                                <div class="attribute"><span>{{ attribute.label }}</span><span>{{ attribute.value }}</span></div>
+                            {% endfor %}
+                        </div>
+                    </section>
+                {% endif %}
+                <div class="attributes">
+                    {% if product.category %}
+                        <div class="attribute"><span>Category</span><span>{{ product.category.name }}</span></div>
+                    {% endif %}
+                    {% if product.brand %}
+                        <div class="attribute"><span>Brand</span><span>{{ product.brand.name }}</span></div>
+                    {% endif %}
+                    <div class="attribute"><span>Availability</span><span id="availability">{% if product.is_active %}Available{% else %}Unavailable{% endif %}</span></div>
+                </div>
+            </div>
+        </article>
+    </main>
+    {{ variants_data|json_script:"variant-data" }}
+    {{ product_images|json_script:"product-image-data" }}
+    <script>
+        const variants = JSON.parse(document.getElementById("variant-data").textContent);
+        const productImages = JSON.parse(document.getElementById("product-image-data").textContent);
+        const optionSelects = [...document.querySelectorAll("[data-attribute]")];
+        const gallery = document.getElementById("product-gallery");
+        const variantSelect = document.getElementById("variant-select");
+        const price = document.querySelector(".price");
+        let oldPrice = document.querySelector(".old-price");
+        const variantName = document.getElementById("variant-name");
+        const variantAttributes = document.getElementById("variant-attributes");
+        const availability = document.getElementById("availability");
+
+        function formatPrice(amount) {
+            return new Intl.NumberFormat("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(Number(amount));
+        }
+
+        function renderGallery(images) {
+            gallery.replaceChildren();
+            const galleryImages = images.length ? images : productImages;
+            if (!galleryImages.length) {
+                const figure = document.createElement("figure");
+                const placeholder = document.createElement("span");
+                placeholder.className = "placeholder";
+                placeholder.textContent = "Product image coming soon";
+                figure.append(placeholder);
+                gallery.append(figure);
+                return;
+            }
+
+            galleryImages.forEach((image, index) => {
+                const figure = document.createElement("figure");
+                const img = document.createElement("img");
+                img.src = image.url;
+                img.alt = `${image.alt}${index ? ` image ${index + 1}` : ""}`;
+                figure.append(img);
+                gallery.append(figure);
+            });
+        }
+
+        function renderVariant(variant) {
+            if (!variant) return;
+            if (price) price.textContent = `₹${formatPrice(variant.price)}`;
+            const basePrice = Number(price?.dataset?.basePrice || 0) || Number(variant.price);
+            if (Number(variant.price) < basePrice) {
+                if (!oldPrice) {
+                    oldPrice = document.createElement("span");
+                    oldPrice.className = "old-price";
+                    document.querySelector(".price-row").append(oldPrice);
+                }
+                oldPrice.textContent = `₹${formatPrice(basePrice)}`;
+                oldPrice.hidden = false;
+            } else if (oldPrice) {
+                oldPrice.hidden = true;
+            }
+            if (variantName) variantName.textContent = variant.name;
+            if (variantAttributes) {
+                variantAttributes.replaceChildren();
+                variant.display_attributes.forEach((attribute) => {
+                    const row = document.createElement("div");
+                    const label = document.createElement("span");
+                    const value = document.createElement("span");
+                    row.className = "attribute";
+                    label.textContent = attribute.label;
+                    value.textContent = attribute.value;
+                    row.append(label, value);
+                    variantAttributes.append(row);
+                });
+            }
+            availability.textContent = variant.is_active ? "Available" : "Unavailable";
+            renderGallery(variant.images);
+        }
+
+        function getCurrentSelectionValues() {
+            return Object.fromEntries(
+                optionSelects.map((select) => [select.dataset.attribute, select.value])
+            );
+        }
+
+        function selectClosestVariant(changedSelect) {
+            const currentSelection = getCurrentSelectionValues();
+            const changedAttribute = changedSelect.dataset.attribute;
+            const matchingVariants = variants.filter(
+                (variant) =>
+                    variant.attributes[changedAttribute] === currentSelection[changedAttribute]
+            );
+            const selectedVariant = matchingVariants.reduce((bestMatch, candidate) => {
+                const candidateMatches = optionSelects.reduce(
+                    (matches, select) =>
+                        matches +
+                        Number(
+                            candidate.attributes[select.dataset.attribute] ===
+                                currentSelection[select.dataset.attribute]
+                        ),
+                    0
+                );
+                const bestMatches = bestMatch
+                    ? optionSelects.reduce(
+                          (matches, select) =>
+                              matches +
+                              Number(
+                                  bestMatch.attributes[select.dataset.attribute] ===
+                                      currentSelection[select.dataset.attribute]
+                              ),
+                          0
+                      )
+                    : -1;
+                return candidateMatches > bestMatches ? candidate : bestMatch;
+            }, null);
+
+            if (!selectedVariant) return;
+
+            optionSelects.forEach((select) => {
+                select.value = selectedVariant.attributes[select.dataset.attribute] || "";
+            });
+            renderVariant(selectedVariant);
+        }
+
+        if (variants.length) {
+            const initialVariant = variants[0];
+            renderVariant(initialVariant);
+            if (optionSelects.length) {
+                optionSelects.forEach((select) => {
+                    select.addEventListener("change", () => {
+                        selectClosestVariant(select);
+                    });
+                });
+            } else if (variantSelect) {
+                variantSelect.addEventListener("change", () => {
+                    renderVariant(variants.find((variant) => variant.id === Number(variantSelect.value)));
+                });
+            }
+        }
+    </script>
+</body>
+</html>
